@@ -1,0 +1,97 @@
+.TH "BoNeSi" 1
+.SH NAME
+BoNeSi \- the DDoS Botnet Simulator 
+.SH SYNOPSIS
+.B bonesi
+[\fIOPTION\fR]... dst_ip:port
+.SH DESCRIPTION
+.B BoNeSi
+is a DDoS Botnet Simulator for different protocol types.
+The attributes of the created packets and connections can be controlled by
+several parameters like packet rate or payload size. It spoofs the source IP
+addresses even when generating TCP traffic (HTTP-GET attack). Therefor it
+includes a simple TCP stack to handle tcp connections in promiscuous mode.
+In a working installation, one has to ensure that the response packets from
+the server are routed to the
+host running BoNeSi. Due to this limitation BoNeSi cannot be used in arbitrary
+network infrastructures running HTTP-GET attacks.
+The most advanced kind of traffic that can be generated are HTTP requests.
+.SH TCP/HTTP
+In order to make the http requests more realistic, several things are determined
+by chance:
+.br
+- \fBsource port:\fR out of range defined in code 
+.br
+- \fBttl\fR: 3..255
+.br
+- \fBtcp options\fR: out of seven different real life options with different
+lengths and probabilities
+.br
+- \fBuser agent for http header\fR: out of a given list from a file
+.SH OPTIONS
+.TP
+\fB\-i, \-\-ips\fR=\fIFILENAME\fR
+read ip addresses from this file
+.TP
+\fB\-p, \-\-protocol\fR=\fIPROTO\fR
+udp (default), icmp or tcp
+.TP
+\fB\-r, \-\-send_rate\fR=\fINUM\fR
+packets per second, 0 = infinite (default)
+.TP
+\fB\-s, \-\-playload_size\fR=\fIBYTES\fR
+size of the paylod, (default: 32)
+.TP
+\fB\-o, \-\-stats_file\fR=\fIFILENAME\fR
+filename for the statistics, (default: 'stats')
+.TP
+\fB\-c, \-\-max_packets\fR=\fINUM\fR
+maximum number of packets (requests at tcp/http)
+.br
+0 = infinite (default)
+.TP
+\fB\-\-integer
+IPs are integers in host byte order instead of in dotted notation
+.TP
+\fB\-t, \-\-max_bots\fR=\fINUM\fR
+determine max_bots in the 24bit prefix randomly (1-256)
+.TP
+\fB\-u, \-\-url\fR=\fIURL\fR
+the url (default: '/') (only for tcp/http)
+.TP
+\fB\-l, \-\-url_list\fR=\fIFILENAME\fR
+filename with url list (only for tcp/http)
+.TP
+\fB\-b, \-\-useragent_list\fR=\fIFILENAME\fR
+filename with useragent list (only for tcp/http)
+.TP
+\fB\-d, \-\-device\fR=\fIDEVICE\fR
+network listening device (only for tcp/http)
+.TP
+\fB\-v, \-\-verbose
+print additional debug messages
+.TP
+\fB\-h, \-\-help
+print the help message and exit
+.SH EXAMPLES
+\fBSend 2 udp packets per second with a payload of 1200bytes to host 192.168.2.1 on port 2405:
+.br
+\fRbonesi -p udp -s 1200 -r 2 -i 50k-bots 192.168.2.1:2405
+.P
+\fBSend as many as possible, but only 100 in total udp packets with a payload of 10bytes to host 192.168.2.1 on port 2405:
+.br
+\fRbonesi -p udp -s 10 -c 100 -i 50k-bots 192.168.2.1:2405
+.P
+\fBRequest http://192.168.2.1/site.html 1000 times per second via eth1:
+.br
+\fRbonesi -p tcp -r 1000 -i 50k-bots -u /site.html -d eth1 192.168.2.1:80
+.SH AUTHOR
+Written by Matthias Reif, Markus Goldstein and Christian Jansohn
+.SH REPORTING BUGS
+Report bugs to <matthias.reif@iupr.dfki.de>.
+.SH COPYRIGHT
+Copyright 2008 Deutsches Forschungszentrum fuer Kuenstliche Intelligenz
+or its licensors, as applicable.
+.P
+This is free software. Licensed under the Apache License, Version 2.0.
+There is NO WARRANTY, to the extent permitted by law.
