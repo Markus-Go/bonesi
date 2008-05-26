@@ -1,0 +1,3 @@
+#summary One-sentence summary of this page.
+
+BoNeSi, the DDoS Botnet Simulator, is a Tool to simulate Botnet Traffic in a testbed environment on the wire. It is designed to study the effect of DDoS attacks.
