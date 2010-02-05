@@ -19,7 +19,7 @@ AC_CHECK_LIB(net, libnet_init)
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([stdlib.h string.h unistd.h pthread.h pcap.h],,AC_MSG_ERROR(header missing))
+AC_CHECK_HEADERS([stdlib.h string.h unistd.h pthread.h pcap.h libnet.h],,AC_MSG_ERROR(header missing))
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
