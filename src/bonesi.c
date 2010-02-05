@@ -347,7 +347,7 @@ int main(int argc, char *argv[]) {
 
     libnet_destroy(libnetHandle);
     free(payload);
-    free(stats);
+    /*free(stats);*/
     printf("%lu %s sent\n", totalCounter, proto==IPPROTO_TCP?"requests ":"packets");
     if(proto == IPPROTO_TCP) {
         pthread_join(pcapThread, NULL);
