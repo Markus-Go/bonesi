@@ -2,8 +2,8 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT(BoNeSi, 0.1, matthias.reif@iupr.dfki.de)
-AM_INIT_AUTOMAKE(bonesi, 0.1)
+AC_INIT(BoNeSi, 0.1.1, markus.goldstein@dfki.de)
+AM_INIT_AUTOMAKE(bonesi, 0.1.1)
 AC_OUTPUT(Makefile src/Makefile man/Makefile)
 AC_CONFIG_SRCDIR(src/bonesi.c)
 AM_CONFIG_HEADER(config.h)
