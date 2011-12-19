@@ -55,6 +55,8 @@ Usage:
   -l, --url_list=FILENAME          filename with url list (only for tcp/http)
   -b, --useragent_list=FILENAME    filename with useragent list (only for tcp/http)
   -d, --device=DEVICE              network listening device (only for tcp/http, e.g. eth1)
+  -m, --mtu=NUM                    set MTU, (default 1500). Currently only when using TCP.
+  -f, --frag=NUM                   set fragmentation mode (0=IP, 1=TCP, default: 0). Currently only when using TCP.
   -v, --verbose                    print additional debug messages
   -h, --help                       print help message and exit
 
