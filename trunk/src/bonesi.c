@@ -988,6 +988,9 @@ void acknowledge(libnet_t *libnetHandle, pcap_t* pcapHandle) {
                 if ((total_pload_size - pload_offset) == 0) {
                     sendAck(libnetHandle, ip, tcp, key);
                     connections[key].status = CLOSED;
+                    if(urls.size > 1){
+                        connections[key].referer = url_number;
+                    }
                 } else {
                     if (max_pload_size > (total_pload_size - pload_offset)) {
                         packet_pload_size = total_pload_size - pload_offset;
