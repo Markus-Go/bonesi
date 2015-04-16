@@ -12,9 +12,9 @@
  * Project: BoNeSi
  * File: http.h 
  * Purpose: support for HTTP-GET attacks 
- * Responsible: Matthias Reif
- * Primary Repository: http://bonesi.googlecode.com/svn/trunk/
- * Web Sites: www.iupr.org, www.dfki.de, http://code.google.com/p/bonesi/
+ * Responsible: Markus Goldstein
+ * Primary Repository: https://github.com/Markus-Go/bonesi
+ * Web Sites: madm.dfki.de, www.goldiges.de
  */
 
 

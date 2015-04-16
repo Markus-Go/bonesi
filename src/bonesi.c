@@ -12,9 +12,9 @@
  * Project: BoNeSi 
  * File: bonesi.c
  * Purpose: a DDoS Botnet Simulator for spoofing ICMP,UDP attacks and HTTP-GET floods
- * Responsible: Matthias Reif
- * Primary Repository: http://bonesi.googlecode.com/svn/trunk/ 
- * Web Sites: madm.dfki.de, http://code.google.com/p/bonesi/
+ * Responsible: Markus Goldstein
+ * Primary Repository: https://github.com/Markus-Go/bonesi 
+ * Web Sites: madm.dfki.de, www.goldiges.de 
  */
 
 #include <stdio.h>

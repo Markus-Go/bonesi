@@ -97,3 +97,14 @@ browserlist.txt
 urllist.txt
 * several urls to use with --urllist option
 
+Copyright/ License/ Credits
+---------------------------
+
+Copyright 2006-2007 Deutsches Forschungszentrum fuer Kuenstliche Intelligenz  
+Copyright 2008-2015 Markus Goldstein
+
+This is free software. Licensed under the [Apache License, Version 2.0](LICENSE).  
+There is NO WARRANTY, to the extent permitted by law.
+
+![http://madm.dfki.de/lib/tpl/dfki/images/logo.jpg](http://madm.dfki.de/lib/tpl/dfki/images/logo.jpg)
+
