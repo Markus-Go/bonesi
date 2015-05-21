@@ -118,6 +118,8 @@ u_int32_t** srcIpsSpoof;
 char** useragents;
 int nuseragents = 0;
 Url_array urls;
+int rp_filter = NULL;
+void INThandler(int);
 
 TcpOption tcpOptions[NUM_TCP_OPTIONS];
 
@@ -129,6 +131,33 @@ int verbose = 0;
 int main(int argc, char *argv[]) {
     srand(time(NULL)*getpid());
     parseArgs(argc, argv);
+    
+    char    buf[1024];
+    FILE    *f = NULL;
+    extern int errno;
+    signal(SIGINT, INThandler);
+   
+    // we need to disable revesered path, otherwise we cannot spoof
+    f = fopen("/proc/sys/net/ipv4/conf/all/rp_filter", "r");
+    if(!f) {
+        fprintf(stderr, "Can't open proc file system: %s. Make sure to disable rp_filter manually.\n", strerror( errno ));
+    }
+    else {
+        fgets(buf, 1023, f);
+        rp_filter = atoi(buf);
+        fclose(f);
+    }
+    
+    if (rp_filter == 1) {
+        f = fopen("/proc/sys/net/ipv4/conf/all/rp_filter", "w");
+        if(!f) {
+            fprintf(stderr, "Can't open proc file system: %s. Make sure to disable rp_filter manually.\n", strerror( errno ));
+        }
+        else {
+            fprintf(f,"0");
+            fclose(f);
+       }
+    }
     
     char errbuf[LIBNET_ERRBUF_SIZE];
     libnet_t *libnetHandle = libnet_init(LIBNET_RAW4, device, errbuf);
@@ -357,6 +386,17 @@ int main(int argc, char *argv[]) {
     printf("%lu %s sent\n", totalCounter, proto==IPPROTO_TCP?"requests ":"packets");
     if(proto == IPPROTO_TCP) {
         pthread_join(pcapThread, NULL);
+    }
+    // set rp_filter back to original value ...
+    if (rp_filter == 1) {
+        f = fopen("/proc/sys/net/ipv4/conf/all/rp_filter", "w");
+        if(!f) {
+            fprintf(stderr, "Can't open proc file system: %s. Make sure to disable rp_filter manually.\n", strerror( errno ));
+        }
+        else {
+            fprintf(f,"1");
+            fclose(f);
+       }
     }
     return EXIT_SUCCESS;
 }
@@ -629,6 +669,7 @@ void printArgs() {
     printf("urls:          %s\n", urlfilename);
     printf("useragents::   %s\n", useragentfilename);
     printf("stats file:    %s\n", statsFilename);
+    printf("device:        %s\n", device);
     (maxPackets > 0) ? printf("maxPackets:    %d\n", maxPackets)
             : printf("maxPackets:    infinite\n");
     printf("format:        ");
@@ -736,6 +777,10 @@ void acknowledge(libnet_t *libnetHandle, pcap_t* pcapHandle) {
     //printf("achnowledge\n");
     //static size_t x = 0;
     sniffedPacket = pcap_next(pcapHandle, &header);
+    if (!sniffedPacket) {
+        //fprintf(stderr, "Error sniffing packet: %s\n", pcap_geterr(pcapHandle));
+	return;
+    }
     ip = (struct iphdr*) (sniffedPacket + sizeof(struct ether_header));
     u_int32_t sIp = ip->daddr; //IP we want to send to
     tcp = (struct tcphdr*) (sniffedPacket + sizeof(struct ether_header) + sizeof(struct iphdr));
@@ -1052,4 +1097,23 @@ void sendAck(libnet_t *libnetHandle, const struct iphdr* ip, const struct tcphdr
             fprintf(stderr, "Can't send tcp ack packet: %s\n", libnet_geterror(libnetHandle));
         }
     }
+}
+
+void INThandler(int sig) {
+    char    buf[1024];
+    FILE    *f = NULL;
+    extern int errno;    
+
+    signal(sig, SIG_IGN);
+    if (rp_filter == 1) {
+        f = fopen("/proc/sys/net/ipv4/conf/all/rp_filter", "w");
+        if(!f) {
+            fprintf(stderr, "Can't open proc file system: %s. Make sure to disable rp_filter manually.\n", strerror( errno ));
+        }
+        else {
+            fprintf(f,"1");
+            fclose(f);
+       }
+    }
+   exit(EXIT_SUCCESS);
 }
