@@ -143,7 +143,9 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Can't open proc file system: %s. Make sure to disable rp_filter manually.\n", strerror( errno ));
     }
     else {
-        fgets(buf, 1023, f);
+        if (!fgets(buf, 1023, f)) {
+             fprintf(stderr, "Can't read proc file system. Permissions?");
+        }
         rp_filter = atoi(buf);
         fclose(f);
     }

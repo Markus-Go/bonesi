@@ -50,8 +50,8 @@ Url getURL(FILE *file){
     u.host[0] = '\0';
     u.path[0] = '\0';
     u.protocol [0] = '\0';
-    fscanf(file, "%s\n", buffer);
-    if(sscanf(buffer,"%50[^:/]://%2000[^/]/%s", u.protocol, u.host, u.path) != 3) {
+    int r = fscanf(file, "%4096s\n", buffer);
+    if(sscanf(buffer,"%50[^:/]://%2000[^/]/%2000s", u.protocol, u.host, u.path) != 3) {
         u.path[0] = '\0';
     }
     //sprintf(u.url, "%s/%s",u.host,u.path);
@@ -73,7 +73,7 @@ Url_array readURLs(const char* urlfilename, int verbose){
     int url_count = 0; 
     char buffer[URL_SIZE];
     while(!feof(file)){
-        fscanf(file, "%s\n", buffer);
+        int r = fscanf(file, "%4096s\n", buffer);
         if(strlen(buffer) > 4)   // > 4 'cause there are at least 4 characters in our template
             url_count++;
     }
