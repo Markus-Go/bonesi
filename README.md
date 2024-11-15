@@ -55,9 +55,8 @@ There is NO WARRANTY, to the extent permitted by law.
 Installation
 ------------
 
-    :~$ ./configure
-    :~$ make
-    :~$ make install
+    :~$ pip install -r requirements.txt
+    :~$ python setup.py install
 
 
 Usage
