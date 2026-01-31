@@ -118,7 +118,7 @@ u_int32_t** srcIpsSpoof;
 char** useragents;
 int nuseragents = 0;
 Url_array urls;
-int rp_filter = NULL;
+int rp_filter = 0;
 void INThandler(int);
 
 TcpOption tcpOptions[NUM_TCP_OPTIONS];
