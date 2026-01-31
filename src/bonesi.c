@@ -21,6 +21,9 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
 #include <math.h>
 #include <stdlib.h>
 #include <unistd.h>

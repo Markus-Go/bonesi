@@ -1,12 +1,13 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ(2.61)
-AC_INIT([BoNeSi], [0.3.1], [Markus-Go@users.noreply.github.com])
+AC_PREREQ([2.71])
+AC_INIT([BoNeSi],[0.3.2],[Markus-Go@users.noreply.github.com])
 AM_INIT_AUTOMAKE
-AC_OUTPUT(Makefile src/Makefile man/Makefile)
+AC_CONFIG_FILES([Makefile src/Makefile man/Makefile])
+AC_OUTPUT
 AC_CONFIG_SRCDIR([src/bonesi.c])
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS([config.h])
 
 
 # Checks for programs.
@@ -18,7 +19,11 @@ AC_CHECK_LIB(pthread, pthread_create)
 AC_CHECK_LIB(net, libnet_init)
 
 # Checks for header files.
-AC_HEADER_STDC
+# Autoupdate added the next two lines to ensure that your configure
+# script's behavior did not change.  They are probably safe to remove.
+AC_CHECK_INCLUDES_DEFAULT
+AC_PROG_EGREP
+
 AC_CHECK_HEADERS([stdlib.h string.h unistd.h pthread.h pcap.h libnet.h],,AC_MSG_ERROR(header missing))
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -26,7 +31,8 @@ AC_C_CONST
 AC_C_INLINE
 AC_TYPE_SIZE_T
 AC_TYPE_SSIZE_T
-AC_HEADER_TIME
+AC_CHECK_HEADERS_ONCE([sys/time.h])
+
 AC_TYPE_UINT32_T
 
 # Checks for library functions.
