@@ -101,10 +101,15 @@ Copyright/ License/ Credits
 ---------------------------
 
 Copyright 2006-2007 Deutsches Forschungszentrum fuer Kuenstliche Intelligenz  
-Copyright 2008-2015 Markus Goldstein
+Copyright 2008-2026 Markus Goldstein
 
 This is free software. Licensed under the [Apache License, Version 2.0](LICENSE).  
 There is NO WARRANTY, to the extent permitted by law.
 
-![http://madm.dfki.de/lib/tpl/dfki/images/logo.jpg](http://madm.dfki.de/lib/tpl/dfki/images/logo.jpg)
+
+This Software is supported by ...  
+
+<a href="http://www.dfki.de/" target="_blank"><img src="https://upload.wikimedia.org/wikipedia/de/8/88/Deutsches_Forschungszentrum_f%C3%BCr_K%C3%BCnstliche_Intelligenz_logo.svg" height="80"></a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="http://www.thu.de" target="_blank"><img src="https://studium.hs-ulm.de/_catalogs/masterpage/HSUlm/images/logo.svg" height="80"></a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+[![https://www.goldiges.de/assets/images/logo-full.png](https://www.goldiges.de/assets/images/logo-full.png)](https://www.goldiges.de/)
 
