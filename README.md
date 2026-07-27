@@ -21,7 +21,7 @@ We focused very much on performance in order to simulate big botnets. On an AMD 
 _Are **BoNeSi** attacks successful?_  
 Yes, they are very successful. UDP/ ICMP attacks can easily fill the bandwidth and HTTP-Flooding attacks knock out webservers fast. We also tested **BoNeSi** against state-of-the-art commercial DDoS mitigation systems and where able to either crash them or hiding the attack from being detected.
 
-<b>A demo video of BoNeSi in action can be found <a target="_blank" href='http://madm.dfki.de/projects/netcentricsecurity'>here</a>.</b>
+<b>A demo video of BoNeSi in action can be found <a target="_blank" href='https://www.youtube.com/watch?v=ocjKGM3PxJI'>here</a>.</b>
 
 Detailed Information
 --------------------
@@ -110,6 +110,6 @@ There is NO WARRANTY, to the extent permitted by law.
 This Software is supported by ...  
 
 <a href="http://www.dfki.de/" target="_blank"><img src="https://upload.wikimedia.org/wikipedia/de/8/88/Deutsches_Forschungszentrum_f%C3%BCr_K%C3%BCnstliche_Intelligenz_logo.svg" height="80"></a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-<a href="http://www.thu.de" target="_blank"><img src="https://studium.hs-ulm.de/_catalogs/masterpage/HSUlm/images/logo.svg" height="80"></a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<a href="http://www.thu.de" target="_blank"><img src="https://www.thu.de/_assets/1b3912148daf116798541c5520df0353/frontend/assets/images/logo.svg" height="80"></a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 [![https://www.goldiges.de/assets/images/logo-full.png](https://www.goldiges.de/assets/images/logo-full.png)](https://www.goldiges.de/)
 
